@@ -1,0 +1,1 @@
+ALTER TABLE "sessions" RENAME COLUMN "refresh_token" TO "session_token";
