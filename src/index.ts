@@ -45,14 +45,14 @@ app.use(
   })
 );
 
-app.use("/api/v1/auth", authRouter);
-app.use("/api/v1/users", userRouter);
-app.use("/api/v1/quizzes", quizRouter);
-app.use("/api/v1/modules", moduleRouter);
-app.use("/api/v1/courses", courseRouter);
-app.use("/api/v1/content", contentRouter);
-app.use("/api/v1/analytics", analyticsRouter);
-app.use("/api/v1/ai", AIRouter);
+app.use("/v1/auth", authRouter);
+app.use("/v1/users", userRouter);
+app.use("/v1/quizzes", quizRouter);
+app.use("/v1/modules", moduleRouter);
+app.use("/v1/courses", courseRouter);
+app.use("/v1/content", contentRouter);
+app.use("/v1/analytics", analyticsRouter);
+app.use("/v1/ai", AIRouter);
 
 app.get("/", (_req, res) => {
   res.send("Hello from Express + TypeScript + pnpm!");
