@@ -13,15 +13,14 @@ import {
   updateCourseSchema,
 } from "../validations/course.validation";
 import {
-  enrollInCourse,
+  completeEnrollment,
   getCourseStudents,
+  initiateCourseEnrollment,
   unenrollFromCourse,
 } from "../controllers/enrollment.controller";
 import {
   createModule,
-  deleteModule,
   getModules,
-  updateModule,
 } from "../controllers/module.controller";
 import { createModuleSchema } from "../validations/module.validation";
 
@@ -58,7 +57,14 @@ courseRouter.post(
   "/:id/enroll",
   authenticate,
   authorize(["student", "instructor", "admin"]),
-  enrollInCourse
+  initiateCourseEnrollment
+);
+
+courseRouter.post(
+  "/enroll/complete",
+  authenticate,
+  authorize(["student", "instructor", "admin"]),
+  completeEnrollment
 );
 
 courseRouter.post(

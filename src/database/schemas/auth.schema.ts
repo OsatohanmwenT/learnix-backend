@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, decimal, integer, pgEnum, pgTable, serial, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { courseEnrollments, lessonCompletions } from "./content.schema";
 import { quizSubmissions } from "./assessment.schema";
 
@@ -24,6 +24,35 @@ export const sessions = pgTable("sessions", {
   refreshToken: text("refresh_token").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const instructorBankDetails = pgTable("instructor_bank_details", {
+  id: serial("id").primaryKey(),
+  instructorId: varchar("instructor_id", { length: 255 }).notNull(),
+  accountNumber: varchar("account_number", { length: 20 }).notNull(),
+  bankCode: varchar("bank_code", { length: 10 }).notNull(),
+  bankName: varchar("bank_name", { length: 100 }).notNull(),
+  accountName: varchar("account_name", { length: 100 }).notNull(),
+  isVerified: boolean("is_verified").default(false),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// instructorPayouts schema
+export const instructorPayouts = pgTable("instructor_payouts", {
+  id: serial("id").primaryKey(),
+  instructorId: varchar("instructor_id", { length: 255 }).notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  bankDetailsId: integer("bank_details_id").notNull(),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, processing, completed, failed
+  transferCode: varchar("transfer_code", { length: 100 }),
+  failureReason: text("failure_reason"),
+  requestedAt: timestamp("requested_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({

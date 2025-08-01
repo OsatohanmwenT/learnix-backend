@@ -1,7 +1,7 @@
 import { boolean, index, integer, pgEnum, pgTable, primaryKey, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { users } from "./auth.schema";
 import { difficultyEnum } from "./enum.schema";
-import { relations } from "drizzle-orm";
+import { is, relations } from "drizzle-orm";
 import { quizzes } from "./assessment.schema";
 
 export const courseStatusEnum = pgEnum('course_status', ['draft', 'published', 'archived']);
@@ -48,6 +48,7 @@ export const courseEnrollments = pgTable('course_enrollments', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
   enrolledAt: timestamp('enrolled_at').defaultNow().notNull(),
+  paymentReference: text('payment_reference'),
   completedAt: timestamp('completed_at'),
   progressPercentage: integer('progress_percentage').default(0).notNull(), // 0-100
 }, (table) => {

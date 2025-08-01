@@ -1,0 +1,1 @@
+ALTER TABLE "course_enrollments" ADD COLUMN "payment_reference" text;

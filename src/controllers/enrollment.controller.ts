@@ -3,8 +3,11 @@ import { courseEnrollments, courses } from "../database/schemas/content.schema";
 import { and, eq } from "drizzle-orm";
 import { db } from "../database";
 import { users } from "../database/schemas/auth.schema";
+import { PaymentService } from "../services/payment.service";
 
-export const enrollInCourse = async (
+const paymentService = new PaymentService();
+
+export const initiateCourseEnrollment = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -25,6 +28,7 @@ export const enrollInCourse = async (
       throw error;
     }
 
+    // Get course details
     const [course] = await db.select().from(courses).where(eq(courses.id, id));
     if (!course) {
       const error: ErrorType = new Error("Course not found");
@@ -40,6 +44,7 @@ export const enrollInCourse = async (
       throw error;
     }
 
+    // Check if user is already enrolled
     const existing = await db
       .select()
       .from(courseEnrollments)
@@ -56,18 +61,156 @@ export const enrollInCourse = async (
       throw error;
     }
 
+    // Get user details for payment
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) {
+      const error: ErrorType = new Error("User not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Check if course is free
+    if (!course.price || course.price === 0) {
+      const [newEnrollment] = await db
+        .insert(courseEnrollments)
+        .values({
+          userId: userId,
+          courseId: id,
+        })
+        .returning();
+
+      res.json({
+        success: true,
+        message: "Enrolled in course successfully",
+        data: newEnrollment,
+      });
+    } else {
+      const paymentData = await paymentService.initializeTransaction({
+        email: user.email,
+        amount: course.price * 100, // Convert to kobo (Paystack uses kobo)
+        metadata: {
+          courseId: id,
+          userId: userId,
+          courseName: course.title,
+          instructorId: course.instructorId,
+          type: "course_enrollment",
+        },
+      });
+
+      res.json({
+        success: true,
+        message: "Payment initialized successfully",
+        data: {
+          paymentUrl: paymentData.data.authorization_url,
+          reference: paymentData.data.reference,
+          course: {
+            id: course.id,
+            title: course.title,
+            price: course.price,
+          },
+        },
+      });
+    }
+  } catch (error) {
+    next(error);
+    return;
+  }
+};
+
+export const completeEnrollment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { reference } = req.body;
+  const userId = req.user?.userId;
+
+  try {
+    if (!reference) {
+      const error: ErrorType = new Error("Payment reference is required");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!userId) {
+      const error: ErrorType = new Error("User ID is required");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const paymentVerification = await paymentService.verifyTransaction(
+      reference
+    );
+
+    if (
+      !paymentVerification.status ||
+      paymentVerification.data.status !== "success"
+    ) {
+      const error: ErrorType = new Error("Payment verification failed");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const { courseId, userId: paymentUserId } =
+      paymentVerification.data.metadata;
+
+    if (paymentUserId !== userId) {
+      const error: ErrorType = new Error(
+        "Payment verification failed - user mismatch"
+      );
+      error.statusCode = 403;
+      throw error;
+    }
+
+    if (paymentUserId !== userId) {
+      const error: ErrorType = new Error(
+        "Payment verification failed - user mismatch"
+      );
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const existing = await db
+      .select()
+      .from(courseEnrollments)
+      .where(
+        and(
+          eq(courseEnrollments.userId, userId),
+          eq(courseEnrollments.courseId, courseId)
+        )
+      );
+
+    if (existing.length > 0) {
+      const error: ErrorType = new Error("Already enrolled in this course");
+      error.statusCode = 409;
+      throw error;
+    }
+
     const [newEnrollment] = await db
       .insert(courseEnrollments)
       .values({
         userId: userId,
-        courseId: id,
+        courseId: courseId,
+        paymentReference: reference,
       })
       .returning();
+
+    const [course] = await db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, courseId));
 
     res.json({
       success: true,
       message: "Enrolled in course successfully",
-      data: newEnrollment,
+      data: {
+        enrollment: newEnrollment,
+        course: {
+          id: course?.id,
+          title: course?.title,
+        },
+        paymentAmount: paymentVerification.data.amount / 100, // Convert back from kobo
+      },
     });
   } catch (error) {
     next(error);
