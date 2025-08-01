@@ -245,10 +245,10 @@
  * @swagger
  * /api/v1/courses/{id}/enroll:
  *   post:
- *     summary: Enroll in a course
+ *     summary: Enroll a user in a course
  *     tags: [Courses]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -258,7 +258,7 @@
  *         description: Course ID
  *     responses:
  *       200:
- *         description: Successfully enrolled in course
+ *         description: Enrollment successful
  *         content:
  *           application/json:
  *             schema:
@@ -266,11 +266,11 @@
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Successfully enrolled in course
+ *                   example: Enrollment successful
  *                 data:
  *                   type: object
  *       400:
- *         description: Already enrolled or course not available
+ *         description: Bad request
  *         content:
  *           application/json:
  *             schema:
@@ -281,32 +281,29 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Course not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-
-/**
- * @swagger
- * /api/v1/courses/{id}/unenroll:
- *   delete:
- *     summary: Unenroll from a course
+ *
+ * /api/v1/courses/enroll/complete:
+ *   post:
+ *     summary: Complete course enrollment after payment verification
  *     tags: [Courses]
  *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Course ID
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               courseId:
+ *                 type: string
+ *                 example: "1"
+ *               paymentReference:
+ *                 type: string
+ *                 example: "paystack_ref_123"
  *     responses:
  *       200:
- *         description: Successfully unenrolled from course
+ *         description: Enrollment completed
  *         content:
  *           application/json:
  *             schema:
@@ -314,29 +311,28 @@
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Successfully unenrolled from course
+ *                   example: Enrollment completed
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Course not found or not enrolled
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-
-/**
- * @swagger
- * /api/v1/courses/{id}/students:
- *   get:
- *     summary: Get students enrolled in a course
+ *
+ * /api/v1/courses/{id}/unenroll:
+ *   post:
+ *     summary: Unenroll a user from a course
  *     tags: [Courses]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -346,7 +342,44 @@
  *         description: Course ID
  *     responses:
  *       200:
- *         description: Students retrieved successfully
+ *         description: Unenrollment successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unenrollment successful
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *
+ * /api/v1/courses/{id}/students:
+ *   get:
+ *     summary: Get all students enrolled in a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: List of students retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -365,19 +398,10 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Course not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-
-/**
- * @swagger
+ *
  * /api/v1/courses/{id}/modules:
  *   get:
- *     summary: Get modules in a course
+ *     summary: Get all modules for a course
  *     tags: [Courses]
  *     parameters:
  *       - in: path
@@ -388,7 +412,7 @@
  *         description: Course ID
  *     responses:
  *       200:
- *         description: Modules retrieved successfully
+ *         description: List of modules retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -401,17 +425,19 @@
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Module'
- *       404:
- *         description: Course not found
+ *       401:
+ *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *
+ * /api/v1/courses/{id}/modules:
  *   post:
- *     summary: Create a module in a course
+ *     summary: Create a new module for a course
  *     tags: [Courses]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -424,20 +450,7 @@
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *               - description
- *             properties:
- *               title:
- *                 type: string
- *                 example: "Variables and Data Types"
- *               description:
- *                 type: string
- *                 example: "Understanding variables and data types"
- *               orderIndex:
- *                 type: integer
- *                 example: 1
+ *             $ref: '#/components/schemas/Module'
  *     responses:
  *       201:
  *         description: Module created successfully
@@ -452,19 +465,13 @@
  *                 data:
  *                   $ref: '#/components/schemas/Module'
  *       400:
- *         description: Validation error
+ *         description: Bad request
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Course not found
  *         content:
  *           application/json:
  *             schema:
