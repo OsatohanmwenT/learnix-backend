@@ -431,8 +431,6 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *
- * /api/v1/courses/{id}/modules:
  *   post:
  *     summary: Create a new module for a course
  *     tags: [Courses]
