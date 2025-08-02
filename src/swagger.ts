@@ -5,7 +5,8 @@ export const swaggerOptions = {
     info: {
       title: "E-Learning Platform API",
       version: "1.0.0",
-      description: "Comprehensive API documentation for the E-Learning Platform with course management, payments, AI-powered features, and analytics",
+      description:
+        "Comprehensive API documentation for the E-Learning Platform with course management, payments, AI-powered features, and analytics",
       contact: {
         name: "API Support",
         email: "support@elearning.com",
@@ -31,13 +32,13 @@ export const swaggerOptions = {
           type: "http",
           scheme: "bearer",
           bearerFormat: "JWT",
-          description: "Enter JWT Bearer token"
+          description: "Enter JWT Bearer token",
         },
         cookieAuth: {
           type: "apiKey",
           in: "cookie",
           name: "sessionId",
-          description: "Session ID stored in cookie"
+          description: "Session ID stored in cookie",
         },
       },
       schemas: {
@@ -159,8 +160,5 @@ export const swaggerOptions = {
       },
     ],
   },
-  apis: [
-    "./src/docs/*.ts",
-    "./src/docs/*.docs.ts"
-  ], // Path to the API docs
+  apis: ["./src/docs/*.ts", "./src/docs/*.docs.ts"], // Path to the API docs
 };

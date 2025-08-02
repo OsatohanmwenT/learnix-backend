@@ -164,7 +164,7 @@ export const refreshAccessToken = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { refreshToken } = req.session;
+  const { refreshToken } = req.body;
   try {
     if (!refreshToken) {
       const error: ErrorType = new Error("No session found");
