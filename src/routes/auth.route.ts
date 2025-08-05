@@ -16,6 +16,6 @@ authRouter.post("/sign-up", validate(signUpSchema), signUp);
 
 authRouter.get("/sign-out", signOut);
 
-authRouter.get("/refresh-token", refreshAccessToken);
+authRouter.post("/refresh-token", refreshAccessToken);
 
 export default authRouter;

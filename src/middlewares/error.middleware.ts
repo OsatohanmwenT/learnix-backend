@@ -9,6 +9,7 @@ export const errorMiddleware = (
   next: NextFunction
 ) => {
   try {
+    console.log(err)
     // Handle Zod validation errors
     if (err instanceof ZodError) {
       return res.status(400).json({
@@ -39,6 +40,17 @@ export const errorMiddleware = (
 
     // PostgreSQL undefined function (UUID generation issue)
     if (dbError.code === "42883") {
+      // Check if it's an enum casting issue
+      if (dbError.message && dbError.message.includes("operator does not exist") && dbError.message.includes("~~*")) {
+        return res.status(500).json({
+          success: false,
+          message: "Database query error: Invalid operator for enum field",
+          details: process.env.NODE_ENV === "development" ? 
+            "Enum fields require type casting when using text operators. Consider casting to text with ::text" : 
+            undefined,
+        });
+      }
+      
       return res.status(500).json({
         success: false,
         message:

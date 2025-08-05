@@ -38,6 +38,40 @@ export const authenticate = (
   }
 };
 
+// Optional authentication - doesn't throw error if no token
+export const optionalAuthenticate = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      // No token provided, but continue without error
+      req.user = undefined;
+      next();
+      return;
+    }
+
+    const decoded = verifyToken(token);
+
+    if (!decoded) {
+      // Invalid token, but continue without error
+      req.user = undefined;
+      next();
+      return;
+    }
+
+    req.user = decoded;
+    next();
+  } catch (error) {
+    // On any error, just continue without user
+    req.user = undefined;
+    next();
+  }
+};
+
 export const authorize =
   (roles: string[]) =>
   async (req: Request, res: Response, next: NextFunction) => {

@@ -6,7 +6,11 @@ import {
   getCourses,
   updateCourse,
 } from "../controllers/course.controller";
-import { authenticate, authorize } from "../middlewares/auth.middleware";
+import {
+  authenticate,
+  authorize,
+  optionalAuthenticate,
+} from "../middlewares/auth.middleware";
 import { validate } from "../utils";
 import {
   createCourseSchema,
@@ -17,11 +21,9 @@ import {
   getCourseStudents,
   initiateCourseEnrollment,
   unenrollFromCourse,
+  checkEnrollmentStatus,
 } from "../controllers/enrollment.controller";
-import {
-  createModule,
-  getModules,
-} from "../controllers/module.controller";
+import { createModule, getModules } from "../controllers/module.controller";
 import { createModuleSchema } from "../validations/module.validation";
 
 const courseRouter: Router = Router();
@@ -36,7 +38,7 @@ courseRouter.post(
   createCourse
 );
 
-courseRouter.get("/:id", getCourseById);
+courseRouter.get("/:id", optionalAuthenticate, getCourseById);
 
 courseRouter.put(
   "/:id",
@@ -65,6 +67,13 @@ courseRouter.post(
   authenticate,
   authorize(["student", "instructor", "admin"]),
   completeEnrollment
+);
+
+courseRouter.get(
+  "/:id/enrollment-status",
+  authenticate,
+  authorize(["student", "instructor", "admin"]),
+  checkEnrollmentStatus
 );
 
 courseRouter.post(

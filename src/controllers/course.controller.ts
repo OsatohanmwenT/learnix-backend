@@ -1,27 +1,58 @@
 import { NextFunction, Response, Request } from "express";
-import {
-  courses,
-} from "../database/schemas/content.schema";
+import { courses } from "../database/schemas/content.schema";
 import { db } from "../database";
-import { and, count, eq, ilike, or } from "drizzle-orm";
+import { and, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { users } from "../database/schemas/auth.schema";
+import { checkUserEnrollmentStatus } from "./enrollment.controller";
 
 export const getCourses = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { page = 1, limit = 10, search } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    query,
+    sortBy = "createdAt",
+    difficulty,
+  } = req.query;
 
   try {
     const offset = (Number(page) - 1) * Number(limit);
 
     const conditions: any = [];
 
-    if (search) {
-      conditions.push(
+    if (query) {
+      const tokens = String(query).split(" ").filter(Boolean);
+
+      // Search across multiple fields using token-based matching
+      const searchConditions = tokens.map((token) =>
         or(
-          ilike(courses.title, `%${search}%`),
-          ilike(courses.description, `%${search}%`)
+          ilike(courses.title, `%${token}%`),
+          ilike(courses.description, `%${token}%`),
+          ilike(sql`${courses.difficulty}::text`, `%${token}%`),
+          ilike(sql`${courses.status}::text`, `%${token}%`),
+          ilike(users.username, `%${token}%`),
+          ilike(users.firstName, `%${token}%`),
+          ilike(users.lastName, `%${token}%`)
+          // Add more fields if available
+        )
+      );
+
+      conditions.push(and(...searchConditions));
+    }
+
+    if (difficulty) {
+      conditions.push(
+        inArray(
+          courses.difficulty,
+          (Array.isArray(difficulty) ? difficulty : [difficulty]) as (
+            | "beginner"
+            | "intermediate"
+            | "advanced"
+            | "expert"
+          )[]
         )
       );
     }
@@ -31,12 +62,31 @@ export const getCourses = async (
     const [{ totalCount }] = await db
       .select({ totalCount: count() })
       .from(courses)
+      .leftJoin(users, eq(courses.instructorId, users.id))
       .where(whereClause);
 
     const allCourses = await db
-      .select()
+      .select({
+        id: courses.id,
+        title: courses.title,
+        description: courses.description,
+        estimatedHours: courses.estimatedHours,
+        thumbnailUrl: courses.thumbnailUrl,
+        status: courses.status,
+        difficulty: courses.difficulty,
+        createdAt: courses.createdAt,
+        updatedAt: courses.updatedAt,
+        instructorId: courses.instructorId,
+        instructorName: sql`concat(${users.firstName}, ' ', ${users.lastName})`,
+      })
       .from(courses)
+      .leftJoin(users, eq(courses.instructorId, users.id))
       .where(whereClause)
+      .orderBy(
+        sql`${
+          courses[sortBy as keyof typeof courses] ?? courses.createdAt
+        } DESC`
+      )
       .limit(Number(limit))
       .offset(offset);
 
@@ -65,6 +115,8 @@ export const getCourseById = async (
   next: NextFunction
 ) => {
   const { id } = req.params;
+  const userId = req.user?.userId; // Optional user ID from authentication
+
   try {
     if (!id) {
       const error: ErrorType = new Error("Course ID is required");
@@ -75,19 +127,44 @@ export const getCourseById = async (
     const [course] = await db.query.courses.findMany({
       where: eq(courses.id, id),
       with: {
+        instructor: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          },
+        },
         modules: {
           with: {
             lessons: true,
           },
         },
       },
-    })
+    });
+
+    if (!course) {
+      const error: ErrorType = new Error("Course not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Check enrollment status if user is authenticated
+    let enrollmentInfo = null;
+    let isEnrolled = false;
+
+    if (userId) {
+      enrollmentInfo = await checkUserEnrollmentStatus(userId, id);
+      isEnrolled = !!enrollmentInfo;
+    }
 
     res.json({
       success: true,
       message: "Course retrieved successfully",
       data: {
-        ...course
+        course,
+        isEnrolled,
+        enrollment: enrollmentInfo,
       },
     });
   } catch (error) {
@@ -126,18 +203,17 @@ export const createCourse = async (
     }
 
     const createdCourse = await db
-        .insert(courses)
-        .values({
-          title,
-          description,
-          estimatedHours,
-          thumbnailUrl,
-          status,
-          difficulty,
-          instructorId: userId,
-        })
-        .returning();
-
+      .insert(courses)
+      .values({
+        title,
+        description,
+        estimatedHours,
+        thumbnailUrl,
+        status,
+        difficulty,
+        instructorId: userId,
+      })
+      .returning();
 
     res.status(201).json({
       success: true,

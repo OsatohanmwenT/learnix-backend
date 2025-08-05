@@ -19,16 +19,19 @@ export class PaymentService {
     email,
     amount,
     metadata,
+    callback_url
   }: {
     email: string;
     amount: number;
     metadata: Record<string, any>;
+    callback_url: string;
   }) {
     try {
       const response = await this.paystackAPI.post("/transaction/initialize", {
         email,
         amount,
         metadata,
+        callback_url,
       });
       return response.data;
     } catch (error) {

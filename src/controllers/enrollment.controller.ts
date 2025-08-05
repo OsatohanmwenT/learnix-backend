@@ -14,6 +14,7 @@ export const initiateCourseEnrollment = async (
 ) => {
   const { id } = req.params;
   const userId = req.user?.userId;
+  const { callback_url } = req.body;
 
   try {
     if (!id) {
@@ -95,6 +96,7 @@ export const initiateCourseEnrollment = async (
           instructorId: course.instructorId,
           type: "course_enrollment",
         },
+        callback_url
       });
 
       res.json({
@@ -314,5 +316,110 @@ export const getCourseStudents = async (
     });
   } catch (error) {
     next(error);
+  }
+};
+
+export const checkEnrollmentStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params; // course id
+  const userId = req.user?.userId;
+
+  try {
+    if (!id) {
+      const error: ErrorType = new Error("Course ID is required");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!userId) {
+      const error: ErrorType = new Error("User ID is required");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Check if course exists
+    const [course] = await db
+      .select({
+        id: courses.id,
+        title: courses.title,
+        status: courses.status,
+      })
+      .from(courses)
+      .where(eq(courses.id, id));
+
+    if (!course) {
+      const error: ErrorType = new Error("Course not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Check enrollment status
+    const [enrollment] = await db
+      .select({
+        userId: courseEnrollments.userId,
+        courseId: courseEnrollments.courseId,
+        enrolledAt: courseEnrollments.enrolledAt,
+        completedAt: courseEnrollments.completedAt,
+        progressPercentage: courseEnrollments.progressPercentage,
+        paymentReference: courseEnrollments.paymentReference,
+      })
+      .from(courseEnrollments)
+      .where(
+        and(
+          eq(courseEnrollments.userId, userId),
+          eq(courseEnrollments.courseId, id)
+        )
+      );
+
+    const isEnrolled = !!enrollment;
+
+    res.json({
+      success: true,
+      data: {
+        courseId: id,
+        courseTitle: course.title,
+        courseStatus: course.status,
+        isEnrolled,
+        enrollment: enrollment || null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Helper function to check enrollment status (can be used internally)
+export const checkUserEnrollmentStatus = async (
+  userId: string | undefined,
+  courseId: string
+) => {
+  if (!userId || !courseId) {
+    return null;
+  }
+
+  try {
+    const [enrollment] = await db
+      .select({
+        userId: courseEnrollments.userId,
+        courseId: courseEnrollments.courseId,
+        enrolledAt: courseEnrollments.enrolledAt,
+        completedAt: courseEnrollments.completedAt,
+        progressPercentage: courseEnrollments.progressPercentage,
+        paymentReference: courseEnrollments.paymentReference,
+      })
+      .from(courseEnrollments)
+      .where(
+        and(
+          eq(courseEnrollments.userId, userId),
+          eq(courseEnrollments.courseId, courseId)
+        )
+      );
+
+    return enrollment || null;
+  } catch (error) {
+    return null;
   }
 };
