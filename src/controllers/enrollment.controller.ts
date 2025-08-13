@@ -6,7 +6,7 @@ import {
   lessonCompletions,
   modules,
 } from "../database/schemas/content.schema";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { db } from "../database";
 import { users } from "../database/schemas/auth.schema";
 import { PaymentService } from "../services/payment.service";
@@ -500,7 +500,6 @@ export const getUserEnrolledCourses = async (
                   }`.trim()
                 : "Unknown Instructor",
             },
-            nextLessonId: null,
           };
         }
 
@@ -525,61 +524,6 @@ export const getUserEnrolledCourses = async (
             )
           );
 
-        // Get next lesson ID
-        let nextLessonId = null;
-
-        // Get the last completed lesson's order for this course
-        const lastCompletedLesson = await db
-          .select({
-            moduleOrder: modules.order,
-            lessonOrder: lessons.order,
-          })
-          .from(lessonCompletions)
-          .innerJoin(lessons, eq(lessonCompletions.lessonId, lessons.id))
-          .innerJoin(modules, eq(lessons.moduleId, modules.id))
-          .where(
-            and(
-              eq(lessonCompletions.userId, userId),
-              eq(modules.courseId, item.course.id),
-              eq(lessonCompletions.isCompleted, true)
-            )
-          )
-          .orderBy(desc(modules.order), desc(lessons.order))
-          .limit(1);
-
-        if (lastCompletedLesson.length > 0) {
-          // Find the next lesson after the last completed one
-          const nextLesson = await db
-            .select({
-              id: lessons.id,
-            })
-            .from(lessons)
-            .innerJoin(modules, eq(lessons.moduleId, modules.id))
-            .where(
-              and(
-                eq(modules.courseId, item.course.id),
-                sql`(${modules.order}, ${lessons.order}) > (${lastCompletedLesson[0].moduleOrder}, ${lastCompletedLesson[0].lessonOrder})`
-              )
-            )
-            .orderBy(modules.order, lessons.order)
-            .limit(1);
-
-          nextLessonId = nextLesson.length > 0 ? nextLesson[0].id : null;
-        } else {
-          // No lessons completed, get the first lesson in the course
-          const firstLesson = await db
-            .select({
-              id: lessons.id,
-            })
-            .from(lessons)
-            .innerJoin(modules, eq(lessons.moduleId, modules.id))
-            .where(eq(modules.courseId, item.course.id))
-            .orderBy(modules.order, lessons.order)
-            .limit(1);
-
-          nextLessonId = firstLesson.length > 0 ? firstLesson[0].id : null;
-        }
-
         return {
           ...item,
           course: {
@@ -594,7 +538,6 @@ export const getUserEnrolledCourses = async (
                 }`.trim()
               : "Unknown Instructor",
           },
-          nextLessonId,
         };
       })
     );
@@ -613,7 +556,6 @@ export const getUserEnrolledCourses = async (
           instructorName: item.instructor.name,
           enrolledAt: item.enrollment.enrolledAt,
           completedAt: item.enrollment.completedAt,
-          nextLessonId: (item as any).nextLessonId,
         })),
         pagination: {
           currentPage: Number(page),
