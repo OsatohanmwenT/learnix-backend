@@ -5,6 +5,7 @@ import {
   getCourseById,
   getCourses,
   updateCourse,
+  getInstructorRecentCourses,
 } from "../controllers/course.controller";
 import {
   authenticate,
@@ -29,6 +30,13 @@ import { createModuleSchema } from "../validations/module.validation";
 const courseRouter: Router = Router();
 
 courseRouter.get("/", getCourses);
+
+courseRouter.get(
+  "/instructor/recent",
+  authenticate,
+  authorize(["instructor", "admin"]),
+  getInstructorRecentCourses
+);
 
 courseRouter.post(
   "/",

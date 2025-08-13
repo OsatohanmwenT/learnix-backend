@@ -4,15 +4,25 @@ import {
   createQuiz,
   createQuizQuestions,
   deleteQuiz,
+  deleteQuizQuestion,
+  getAllQuizzes,
   getQuizById,
   updateQuiz,
+  updateQuizQuestion,
 } from "../controllers/quiz.controller";
 import { validate } from "../utils";
 import {
   createQuizSchema,
   updateQuizSchema,
 } from "../validations/quiz.validation";
-import { createQuizSession, getQuizInfo, getQuizQuestions, getUserQuizResults, submitQuiz } from "../controllers/quizSession.controller";
+import {
+  createQuizSession,
+  getQuizInfo,
+  getQuizQuestions,
+  getUserQuizResults,
+  submitQuiz,
+  getRecentQuizAttempts,
+} from "../controllers/quizSession.controller";
 import { submitQuizSchema } from "../validations/quizSession.validation";
 
 const quizRouter: Router = Router();
@@ -23,6 +33,13 @@ quizRouter.post(
   authorize(["admin", "instructor"]),
   validate(createQuizSchema),
   createQuiz
+);
+
+quizRouter.get(
+  "/",
+  authenticate,
+  authorize(["admin", "instructor"]),
+  getAllQuizzes
 );
 
 quizRouter.put(
@@ -47,12 +64,28 @@ quizRouter.post(
   createQuizQuestions
 );
 
+quizRouter.put(
+  "/questions/:questionId",
+  authenticate,
+  authorize(["admin", "instructor"]),
+  updateQuizQuestion
+);
+
+quizRouter.delete(
+  "/questions/:questionId",
+  authenticate,
+  authorize(["admin", "instructor"]),
+  deleteQuizQuestion
+);
+
 quizRouter.get(
   "/:id",
   authenticate,
   authorize(["admin", "instructor"]),
   getQuizById
 );
+
+quizRouter.get("/recent-attempts", authenticate, getRecentQuizAttempts);
 
 quizRouter.get("/:id/info", authenticate, getQuizInfo);
 
@@ -67,10 +100,6 @@ quizRouter.post(
 
 quizRouter.get("/:id/results", authenticate, getUserQuizResults);
 
-quizRouter.get(
-  "/session/:sessionId/questions",
-  authenticate,
-  getQuizQuestions
-);
+quizRouter.get("/session/:sessionId/questions", authenticate, getQuizQuestions);
 
 export default quizRouter;

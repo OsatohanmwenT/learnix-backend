@@ -249,44 +249,81 @@ export const getCourseProgress = async (
 
     const progressPercentage = await calculateCourseProgress(userId, courseId);
 
-    const completedLessons = await db
+    // Get course details
+    const [courseDetails] = await db
+      .select({
+        id: courses.id,
+        title: courses.title,
+      })
+      .from(courses)
+      .where(eq(courses.id, courseId));
+
+    // Get all lessons with completion status
+    const allLessonsWithCompletion = await db
       .select({
         lessonId: lessons.id,
         lessonTitle: lessons.title,
+        moduleId: modules.id,
         moduleTitle: modules.title,
+        isCompleted: sql<boolean>`CASE WHEN ${lessonCompletions.isCompleted} IS TRUE THEN true ELSE false END`,
         completedAt: lessonCompletions.completedAt,
+        lessonOrder: lessons.order,
+        moduleOrder: modules.order,
       })
-      .from(lessonCompletions)
-      .innerJoin(lessons, eq(lessonCompletions.lessonId, lessons.id))
-      .innerJoin(modules, eq(lessons.moduleId, modules.id))
-      .where(
-        and(
-          eq(lessonCompletions.userId, userId),
-          eq(modules.courseId, courseId),
-          eq(lessonCompletions.isCompleted, true)
-        )
-      )
-      .orderBy(lessonCompletions.completedAt);
-
-    const totalLessonsResult = await db
-      .select({ count: count() })
       .from(lessons)
       .innerJoin(modules, eq(lessons.moduleId, modules.id))
-      .where(eq(modules.courseId, courseId));
+      .leftJoin(
+        lessonCompletions,
+        and(
+          eq(lessonCompletions.lessonId, lessons.id),
+          eq(lessonCompletions.userId, userId)
+        )
+      )
+      .where(eq(modules.courseId, courseId))
+      .orderBy(modules.order, lessons.order);
 
-    const totalLessons = totalLessonsResult[0]?.count || 0;
+    // Get total lesson count
+    const totalLessons = allLessonsWithCompletion.length;
+    const completedLessonsCount = allLessonsWithCompletion.filter(
+      (lesson) => lesson.isCompleted
+    ).length;
+
+    // Group lessons by modules
+    const moduleMap = new Map();
+
+    allLessonsWithCompletion.forEach((lesson) => {
+      if (!moduleMap.has(lesson.moduleId)) {
+        moduleMap.set(lesson.moduleId, {
+          id: lesson.moduleId,
+          name: lesson.moduleTitle,
+          lessons: [],
+        });
+      }
+
+      moduleMap.get(lesson.moduleId).lessons.push({
+        id: lesson.lessonId,
+        name: lesson.lessonTitle,
+        isCompleted: lesson.isCompleted,
+        completedAt: lesson.completedAt,
+      });
+    });
+
+    const modulesWithLessons = Array.from(moduleMap.values());
 
     res.json({
       success: true,
       data: {
-        courseId,
+        course: {
+          id: courseDetails.id,
+          name: courseDetails.title,
+        },
         progressPercentage,
-        completedLessons: completedLessons.length,
         totalLessons,
+        completedLessons: completedLessonsCount,
         isCompleted: progressPercentage === 100,
         completedAt: enrollment[0].completedAt,
         enrolledAt: enrollment[0].enrolledAt,
-        recentCompletions: completedLessons,
+        modules: modulesWithLessons,
       },
     });
   } catch (error) {

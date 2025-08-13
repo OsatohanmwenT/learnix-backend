@@ -3,6 +3,7 @@ import {
   getCourseStatistics,
   getPlatformAnalytics,
   getInstructorAnalytics,
+  getUserStatistics,
 } from "../controllers/analytics.controller";
 import { authenticate, authorize } from "../middlewares/auth.middleware";
 
@@ -31,5 +32,8 @@ analyticsRouter.get(
   authorize(["instructor", "admin"]),
   getInstructorAnalytics
 );
+
+// User's personal statistics
+analyticsRouter.get("/user", authenticate, getUserStatistics);
 
 export default analyticsRouter;

@@ -1,0 +1,1 @@
+ALTER TABLE "courses" ALTER COLUMN "category" DROP NOT NULL;

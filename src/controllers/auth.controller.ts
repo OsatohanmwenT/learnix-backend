@@ -38,6 +38,8 @@ export const signIn = async (
       userId: user.id,
       role: user.role,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       username: user.username,
     });
 
@@ -45,6 +47,8 @@ export const signIn = async (
       userId: user.id,
       role: user.role,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       username: user.username,
     });
 
@@ -65,6 +69,8 @@ export const signIn = async (
         user: {
           id: user.id,
           email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
           username: user.username,
           role: user.role,
         },
@@ -165,7 +171,6 @@ export const refreshAccessToken = async (
   next: NextFunction
 ) => {
   const { refreshToken } = req.body;
-  console.log(refreshAccessToken)
   
   try {
     if (!refreshToken) {

@@ -1,0 +1,1 @@
+ALTER TABLE "courses" ADD COLUMN "category" varchar(100) NOT NULL;

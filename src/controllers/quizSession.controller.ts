@@ -38,7 +38,7 @@ const checkAndCompleteExpiredSession = async (
       })
       .where(eq(quizSubmissions.id, sessionId));
 
-    return true; 
+    return true;
   }
 
   return false;
@@ -526,7 +526,7 @@ export const submitQuiz = async (
           });
         }
       }
-      
+
       for (const option of answerOptionsData) {
         answerOptionsMap.set(option.id, {
           questionId: option.questionId,
@@ -565,7 +565,6 @@ export const submitQuiz = async (
           isCorrect,
           pointsEarned,
         };
-
       }
 
       const validResponses = responseData.filter(Boolean);
@@ -574,8 +573,10 @@ export const submitQuiz = async (
         await tx.insert(questionResponses).values(validResponses);
       }
 
-      const percentageScore = totalPossiblePoints > 0 ? 
-        Math.round((totalScore / totalPossiblePoints) * 100) : 0;
+      const percentageScore =
+        totalPossiblePoints > 0
+          ? Math.round((totalScore / totalPossiblePoints) * 100)
+          : 0;
       const isPassed = percentageScore >= session.passingScore;
 
       // Update submission
@@ -605,13 +606,15 @@ export const submitQuiz = async (
           timeTaken: timeSpent || timeTaken,
           correctAnswers: correctCount,
           totalQuestions: validResponses.length,
-        }
+        },
       };
     });
 
     const response = {
       success: true,
-      message: result.stats.isPassed ? "Quiz passed successfully!" : "Quiz completed",
+      message: result.stats.isPassed
+        ? "Quiz passed successfully!"
+        : "Quiz completed",
       data: {
         submissionId: result.submission.id,
         stats: result.stats,
@@ -852,6 +855,103 @@ export const checkSessionStatus = async (
             isPassed: session.isPassed,
           },
         }),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get user's recent quiz attempts with scores
+ */
+export const getRecentQuizAttempts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.user?.userId;
+  const { limit = "10" } = req.query as { limit?: string };
+
+  try {
+    if (!userId) {
+      const error: ErrorType = new Error("User authentication required");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const limitNum = Math.min(parseInt(limit, 10) || 10, 50); // Max 50 results
+
+    // Get recent completed quiz attempts with quiz details
+    const recentAttempts = await db
+      .select({
+        submissionId: quizSubmissions.id,
+        quizId: quizzes.id,
+        quizTitle: quizzes.title,
+        quizDifficulty: quizzes.difficulty,
+        attemptNumber: quizSubmissions.attemptNumber,
+        score: quizSubmissions.score,
+        percentageScore: quizSubmissions.percentageScore,
+        isPassed: quizSubmissions.isPassed,
+        submittedAt: quizSubmissions.submittedAt,
+        passingScore: quizzes.passingScore,
+        timeLimit: quizzes.timeLimit,
+      })
+      .from(quizSubmissions)
+      .innerJoin(quizzes, eq(quizSubmissions.quizId, quizzes.id))
+      .where(
+        and(
+          eq(quizSubmissions.userId, userId),
+          eq(quizSubmissions.isCompleted, true)
+        )
+      )
+      .orderBy(desc(quizSubmissions.submittedAt))
+      .limit(limitNum);
+
+    // Calculate some summary statistics
+    const totalAttempts = recentAttempts.length;
+    const passedAttempts = recentAttempts.filter(
+      (attempt) => attempt.isPassed
+    ).length;
+    const averageScore =
+      totalAttempts > 0
+        ? Math.round(
+            recentAttempts.reduce(
+              (sum, attempt) => sum + attempt.percentageScore,
+              0
+            ) / totalAttempts
+          )
+        : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        attempts: recentAttempts.map((attempt) => ({
+          submissionId: attempt.submissionId,
+          quiz: {
+            id: attempt.quizId,
+            title: attempt.quizTitle,
+            difficulty: attempt.quizDifficulty,
+            passingScore: attempt.passingScore,
+            timeLimit: attempt.timeLimit,
+          },
+          attempt: {
+            number: attempt.attemptNumber,
+            score: attempt.score,
+            percentageScore: attempt.percentageScore,
+            isPassed: attempt.isPassed,
+            submittedAt: attempt.submittedAt,
+          },
+        })),
+        summary: {
+          totalAttempts,
+          passedAttempts,
+          passRate:
+            totalAttempts > 0
+              ? Math.round((passedAttempts / totalAttempts) * 100)
+              : 0,
+          averageScore,
+        },
       },
     });
   } catch (error) {

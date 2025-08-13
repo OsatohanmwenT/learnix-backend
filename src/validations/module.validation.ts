@@ -3,7 +3,7 @@ import z from "zod";
 export const createModuleSchema = z.object({
     title: z.string().min(2, { message: "Module title must be at least 2 characters long" }).max(100),
     description: z.string().min(10, { message: "Module description must be at least 10 characters long" }).max(500),
-    order: z.number().int().min(0, { message: "Module order must be a non-negative integer" }).optional(),
+    order: z.number().int().min(0, { message: "Module order must be a non-negative integer" }),
     lessons: z.array(z.object({
         title: z.string().min(2, { message: "Lesson title must be at least 2 characters long" }).max(100).optional(),
         description: z.string().min(10, { message: "Lesson description must be at least 10 characters long" }).max(500).optional(),

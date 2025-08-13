@@ -3,160 +3,201 @@ import { db } from "../database";
 import { eq } from "drizzle-orm";
 import { modules, lessons } from "../database/schemas/content.schema";
 
-export const getModules = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
+export const getModules = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
 
-    try {
-        if(!id) {
-            const error: ErrorType = new Error("Course ID is required");
-            error.statusCode = 400;
-            throw error;
-        }
-
-        const courseModules = await db.select().from(modules).where(eq(modules.courseId, id))
-
-        if (!courseModules || courseModules.length === 0) {
-            const error: ErrorType = new Error("No modules found for this course");
-            error.statusCode = 404;
-            throw error;
-        }
-
-        res.json({
-            success: true,
-            message: "Modules retrieved successfully",
-            data: courseModules
-        });
-    } catch (error) {
-        next(error);
+  try {
+    if (!id) {
+      const error: ErrorType = new Error("Course ID is required");
+      error.statusCode = 400;
+      throw error;
     }
-}
 
-export const getModuleById = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
+    const courseModules = await db
+      .select()
+      .from(modules)
+      .where(eq(modules.courseId, id));
 
-    try {
-        if (!id) {
-            const error: ErrorType = new Error("Module ID is required");
-            error.statusCode = 400;
-            throw error;
-        }
-
-        const [module] = await db.select().from(modules).where(eq(modules.id, id));
-
-        if (!module) {
-            const error: ErrorType = new Error("Module not found");
-            error.statusCode = 404;
-            throw error;
-        }
-
-        res.json({
-            success: true,
-            message: "Module retrieved successfully",
-            data: module
-        });
-    } catch (error) {
-        next(error);
+    if (!courseModules || courseModules.length === 0) {
+      const error: ErrorType = new Error("No modules found for this course");
+      error.statusCode = 404;
+      throw error;
     }
-}
 
-export const createModule = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    const { title, description, order = 0 } = req.body;
+    res.json({
+      success: true,
+      message: "Modules retrieved successfully",
+      data: courseModules,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    try {
-        if (!id) {
-            const error: ErrorType = new Error("Course ID is required");
-            error.statusCode = 400;
-            throw error;
-        }
+export const getModuleById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
 
-        if (!title || !description) {
-            const error: ErrorType = new Error("Title and description are required");
-            error.statusCode = 400;
-            throw error;
-        }
-
-        const [newModule] = await db.insert(modules).values({
-            courseId: id,
-            title,
-            description,
-            order
-        }).returning();
-
-        res.json({
-            success: true,
-            message: "Module created successfully",
-            data: newModule
-        });
-    } catch (error) {
-        next(error);
+  try {
+    if (!id) {
+      const error: ErrorType = new Error("Module ID is required");
+      error.statusCode = 400;
+      throw error;
     }
-}
 
-export const updateModule = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    const { title, description } = req.body;
+    const [module] = await db.select().from(modules).where(eq(modules.id, id));
 
-    try {
-        if (!id) {
-            const error: ErrorType = new Error("Course ID and Module ID are required");
-            error.statusCode = 400;
-            throw error;
-        }
-
-        const existingModule = await db.select().from(modules).where(eq(modules.id, id));
-
-        if (existingModule.length === 0) {
-            const error: ErrorType = new Error("Module not found");
-            error.statusCode = 404;
-            throw error;
-        }
-
-        const [updatedModule] = await db.update(modules)
-            .set({ title, description })
-            .where(eq(modules.id, id))
-            .returning();
-
-        res.json({
-            success: true,
-            message: "Module updated successfully",
-            data: updatedModule
-        });
-    } catch (error) {
-        next(error);
+    if (!module) {
+      const error: ErrorType = new Error("Module not found");
+      error.statusCode = 404;
+      throw error;
     }
-}
 
-export const deleteModule = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
+    res.json({
+      success: true,
+      message: "Module retrieved successfully",
+      data: module,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    try {
-        if (!id) {
-            const error: ErrorType = new Error("Course ID and Module ID are required");
-            error.statusCode = 400;
-            throw error;
-        }
+export const createModule = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
+  const { title, description, order = 0 } = req.body;
 
-        const existingModule = await db.select().from(modules).where(eq(modules.id, id));
-
-        if (existingModule.length === 0) {
-            const error: ErrorType = new Error("Module not found");
-            error.statusCode = 404;
-            throw error;
-        }
-
-        await db.delete(modules).where(eq(modules.id, id));
-
-        res.json({
-            success: true,
-            message: "Module deleted successfully"
-        });
-    } catch (error) {
-        next(error);
+  try {
+    if (!id) {
+      const error: ErrorType = new Error("Course ID is required");
+      error.statusCode = 400;
+      throw error;
     }
-}
 
-export const getModuleContent = async (req: Request, res: Response, next: NextFunction) => {
+    if (!title || !description) {
+      const error: ErrorType = new Error("Title and description are required");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const [newModule] = await db
+      .insert(modules)
+      .values({
+        courseId: id,
+        title,
+        description,
+        order,
+      })
+      .returning();
+
+    res.json({
+      success: true,
+      message: "Module created successfully",
+      data: newModule,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateModule = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
+  const { title, description } = req.body;
+
+  try {
+    if (!id) {
+      const error: ErrorType = new Error(
+        "Course ID and Module ID are required"
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const existingModule = await db
+      .select()
+      .from(modules)
+      .where(eq(modules.id, id));
+
+    if (existingModule.length === 0) {
+      const error: ErrorType = new Error("Module not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const [updatedModule] = await db
+      .update(modules)
+      .set({ title, description })
+      .where(eq(modules.id, id))
+      .returning();
+
+    res.json({
+      success: true,
+      message: "Module updated successfully",
+      data: updatedModule,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteModule = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
+
+  try {
+    if (!id) {
+      const error: ErrorType = new Error(
+        "Course ID and Module ID are required"
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const existingModule = await db
+      .select()
+      .from(modules)
+      .where(eq(modules.id, id));
+
+    if (existingModule.length === 0) {
+      const error: ErrorType = new Error("Module not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    await db.delete(modules).where(eq(modules.id, id));
+
+    res.json({
+      success: true,
+      message: "Module deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getModuleContent = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const { id } = req.params;
   try {
     if (!id) {
@@ -178,13 +219,28 @@ export const getModuleContent = async (req: Request, res: Response, next: NextFu
   }
 };
 
-export const createModuleContent = async (req: Request, res: Response, next: NextFunction) => {
+export const createModuleContent = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const { id } = req.params;
-  const { title, description, contentType, contentData, order, durationMinutes } = req.body;
+  const {
+    title,
+    description,
+    contentType,
+    contentData,
+    order,
+    durationMinutes,
+  } = req.body;
+
+  console.log(order);
 
   try {
     if (!id || !title || !contentType) {
-      const error: ErrorType = new Error("Module ID, title, and contentType are required");
+      const error: ErrorType = new Error(
+        "Module ID, title, and contentType are required"
+      );
       error.statusCode = 400;
       throw error;
     }

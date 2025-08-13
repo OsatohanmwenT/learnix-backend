@@ -71,6 +71,27 @@
       "when": 1754039738360,
       "tag": "0009_typical_rage",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1754686604186,
+      "tag": "0010_strange_vulture",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1754912001322,
+      "tag": "0011_left_lucky_pierre",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1754916399931,
+      "tag": "0012_outstanding_meltdown",
+      "breakpoints": true
     }
   ]
 }
