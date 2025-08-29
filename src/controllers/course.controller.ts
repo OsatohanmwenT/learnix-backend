@@ -16,6 +16,7 @@ export const getCourses = async (
     query,
     sortBy = "createdAt",
     difficulty,
+    category,
   } = req.query;
 
   try {
@@ -55,6 +56,19 @@ export const getCourses = async (
           )[]
         )
       );
+    }
+
+    if (category) {
+      const categoryArray = Array.isArray(category) ? category : [category];
+      const stringCategories = categoryArray.filter((cat): cat is string => typeof cat === "string");
+      if (stringCategories.length > 0) {
+        conditions.push(
+          inArray(
+            courses.category,
+            stringCategories
+          )
+        );
+      }
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

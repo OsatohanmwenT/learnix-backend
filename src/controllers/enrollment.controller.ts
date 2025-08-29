@@ -150,7 +150,7 @@ export const completeEnrollment = async (
       reference
     );
 
-    console.log(paymentVerification)
+    console.log(paymentVerification);
 
     if (
       !paymentVerification.status ||
@@ -210,7 +210,7 @@ export const completeEnrollment = async (
       .from(courses)
       .where(eq(courses.id, courseId));
 
-    console.log(existing, course, newEnrollment)
+    console.log(existing, course, newEnrollment);
 
     res.json({
       success: true,
@@ -451,13 +451,11 @@ export const getUserEnrolledCourses = async (
 
     const offset = (Number(page) - 1) * Number(limit);
 
-    // Get total count of enrolled courses
     const [{ totalCount }] = await db
       .select({ totalCount: count() })
       .from(courseEnrollments)
       .where(eq(courseEnrollments.userId, userId));
 
-    // Get enrolled courses with details
     const enrolledCourses = await db
       .select({
         enrollment: {
@@ -482,7 +480,6 @@ export const getUserEnrolledCourses = async (
       .limit(Number(limit))
       .offset(offset);
 
-    // Get lesson counts and completion status for each course
     const coursesWithLessonData = await Promise.all(
       enrolledCourses.map(async (item) => {
         if (!item.course?.id) {
@@ -503,14 +500,12 @@ export const getUserEnrolledCourses = async (
           };
         }
 
-        // Get total lessons count for the course
         const [{ totalLessons }] = await db
           .select({ totalLessons: count() })
           .from(lessons)
           .leftJoin(modules, eq(lessons.moduleId, modules.id))
           .where(eq(modules.courseId, item.course.id));
 
-        // Get completed lessons count for the user
         const [{ completedLessons }] = await db
           .select({ completedLessons: count() })
           .from(lessonCompletions)
